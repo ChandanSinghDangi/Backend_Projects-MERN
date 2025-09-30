@@ -7,6 +7,8 @@ const asyncHandler = (requestHandler) => {
 }
 
 
+export { asyncHandler } 
+
 
 
 // below this is a try-catch code to handle express error:-
@@ -24,10 +26,9 @@ const asyncHandler = (requestHandler) => {
 // }
 
 
-
 // asyncHandler(async (req, res, next) => {
 //   const users = await User.find();
 //   res.json(users);
 // });
 
- 
+

@@ -2,6 +2,7 @@
 // where this Error came from and what properties it has
 
 class ApiError extends Error { 
+    
     constructor(
         statusCode,
         message= 'Something went wrong', 
@@ -33,3 +34,4 @@ class ApiError extends Error {
 
 export { ApiError }
 // how someone will import this?
+

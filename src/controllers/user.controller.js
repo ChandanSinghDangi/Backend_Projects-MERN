@@ -235,16 +235,171 @@ const refreshAccessToken = asyncHandler( async(req, res) => {
 })
 
 
+const changeCurrentPassword = asyncHandler( async(req, res) => {
 
+    const { oldPassword, newPassword } = req.body;
+
+    if( !oldPassword || !newPassword ) {
+        throw new ApiError(401, 'old password or new password is required')
+    }
+
+    const user = await User.findById(req.user?._id);
+
+    const old_new_passwordCompareResult = await user.isPasswordCorrect(oldPassword);
+
+    if( !old_new_passwordCompareResult ) {
+        throw new ApiError(401, 'old password does not match the currentPassword')
+    }
+
+    user.password = newPassword; // here you have set the newPassword. not saved yet!
+    await user.save({ validateBeforeSave: false }) // here you save the password
+
+    return res
+    .status(200)
+    .json(
+        new ApiResponse(200, {} ,'password updated successfully')
+    )
+
+})
+
+
+// this is to get the current user and i don't know why we need this yet!
+const getCurrentUser = asyncHandler( async(req, res) => {
+
+    return res
+    .status(200)
+    .json(200, req.user, 'Current user fetched successfully')
+    // .json(
+    //     new ApiResponse(200, {message: req.user}, 'Current user fetched successfully')
+    // )
+
+})
+
+
+const updateAccountDetails = asyncHandler( async(req, res) => {
+
+    const { fullName, email } = req.body;
+
+    // files should not be updated here. You can but usually in production level it's avoided!
+
+    if( !fullName || !email ) {
+        throw new ApiError(400, 'all fields are required')
+    }
+
+    const user = await User.findByIdAndUpdate(
+        req.user?._id,
+        {
+            $set: {
+                fullName, 
+                email
+            }
+        },
+        {
+            new: true
+        }
+    ).select('-password'); // why not remove -refreshToken?
+
+    user.save({ validateBeforeSave: false});
+
+    return res
+    .status(200)
+    .json(
+        new ApiResponse(200, user, 'Account details updated successfully')
+    )
+})
+
+
+const updateUserAvatar = asyncHandler( async(req, res) => {
+
+    const avatarLocalPath = req.file?.path;
+
+    if( !avatarLocalPath ) {
+        throw new ApiError(400, 'avatar file required')
+    }
+
+    const avatar =  await uploadOnCloudinary(avatarLocalPath);
+
+    if( !avatar.url ) {
+        throw new ApiError(400, 'Error while uploading your avatar')
+    }
+
+    // this code below this another way to save the avatar:-
+    // const user = await User.findById(req.user?._id);
+    // user.avatar = avatar.url;
+    // await user.save({ validateBeforeSave: false })
+
+    const user = await User.findByIdAndUpdate(
+        req.user?._id,
+        {
+            $set: {
+                avatar: avatar.url
+            }
+        },
+        {
+            new: true
+        }
+    ).select('-password')
+
+    // await user.save({ validateBeforeSave: false })
+
+    return res
+    .status(200)
+    .json(
+        new ApiResponse(200, user, 'avatar updated successfully')
+    )
+})
+
+
+const updateUserCoverImage = asyncHandler(async(req, res) => {
+
+    const coverImageLocalPath = req.file?.path; // why write path here?
+
+    if( !coverImageLocalPath ) {
+        throw new ApiError(400, 'coverImage is required')
+    }
+
+    const coverImage = await uploadOnCloudinary(coverImageLocalPath);
+
+    if( !coverImage.url ) {
+        throw new ApiError(501, 'Error while uploading your coverImage')
+    }
+
+    const user = await User.findByIdAndUpdate(
+        req.user?._id,
+        {
+            $set: {
+                coverImage: coverImage.url
+            }
+        },
+        {
+            new: true
+        }
+    ).select('-password')
+
+    // await user.save({ validateBeforeSave: false});
+
+    return res
+    .status(200)
+    .json(
+        new ApiResponse(200, user, 'cover image updated successfully')
+    )
+
+})
 
 
 export { 
+
     registerUser, 
     loginUser, 
     logoutUser, 
-    refreshAccessToken 
+    refreshAccessToken,
+    changeCurrentPassword,
+    getCurrentUser,
+    updateAccountDetails,
+    updateUserAvatar,
+    updateUserCoverImage
 }
- 
+
 
 
 // *********************************** For User Register **************************************
@@ -269,4 +424,7 @@ export {
 // genarate the access and refresh tokens and store refresh token in db
 // send cookies
 // then return the response to the user
+
+
+
 

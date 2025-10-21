@@ -1,7 +1,7 @@
 import { asyncHandler } from "../utils/asyncHandler.js";
 import { ApiError } from "../utils/ApiError.js";
 import { User } from "../models/user.model.js";
-import { uploadOnCloudinary } from "../utils/cloudinary.js";
+import { uploadOnCloudinary, deleteCloudinaryFile } from "../utils/cloudinary.js";
 import { ApiResponse } from "../utils/ApiResponse.js";
 import jwt from 'jsonwebtoken';
 
@@ -77,7 +77,10 @@ const registerUser = asyncHandler( async(req, res) => {
 
     const user = await User.create({
         fullName,
-        avatar: avatar.url,
+        avatar: {
+            url: avatar.url, 
+            public_id: avatar.public_id
+        },
         coverImage: coverImage?.url || '',
         email,
         password,
@@ -268,10 +271,10 @@ const getCurrentUser = asyncHandler( async(req, res) => {
 
     return res
     .status(200)
-    .json(200, req.user, 'Current user fetched successfully')
-    // .json(
-    //     new ApiResponse(200, {message: req.user}, 'Current user fetched successfully')
-    // )
+    .json(
+        new ApiResponse(200, {message: req.user}, 'Current user fetched successfully')
+    )
+    // .json(200, req.user, 'Current user fetched successfully')
 
 })
 
@@ -323,24 +326,43 @@ const updateUserAvatar = asyncHandler( async(req, res) => {
         throw new ApiError(400, 'Error while uploading your avatar')
     }
 
-    // this code below this another way to save the avatar:-
-    // const user = await User.findById(req.user?._id);
-    // user.avatar = avatar.url;
+    const user = await User.findById(req.user?._id).select('-password ')
+    const oldAvatar = user.avatar; // avatar is an object with url and public_id
+    user.avatar = {
+        url: avatar.url,
+        public_id: avatar.public_id
+    };
+
+    await user.save({ validateBeforeSave: false })
+
+    // const user = await User.findByIdAndUpdate(
+    //     req.user?._id,
+    //     {
+    //         $set: {
+    //             avatar: avatar.url
+    //         }
+    //     },
+    //     {
+    //         new: true
+    //     }
+    // ).select('-password')
     // await user.save({ validateBeforeSave: false })
 
-    const user = await User.findByIdAndUpdate(
-        req.user?._id,
-        {
-            $set: {
-                avatar: avatar.url
+    const public_id = oldAvatar.public_id;
+
+    if(oldAvatar?.public_id) {
+
+        try {
+            const { success, message } = await deleteCloudinaryFile(public_id);
+            if( !success ) {
+                throw new ApiError(501, message)
             }
-        },
-        {
-            new: true
-        }
-    ).select('-password')
 
-    // await user.save({ validateBeforeSave: false })
+        } catch (error) {
+            console.warn('Cloudinary deletion error:', error.message);
+
+        }
+    }
 
     return res
     .status(200)
@@ -399,6 +421,9 @@ export {
     updateUserAvatar,
     updateUserCoverImage
 }
+
+
+// in this delete file from cloudinary? how kanchan is going to do video 18.
 
 
 

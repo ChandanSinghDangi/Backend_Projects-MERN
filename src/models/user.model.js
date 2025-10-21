@@ -9,7 +9,10 @@ const userSchema = new Schema(
         username: { type: String, required: true, lowercase: true, unique: true, trim: true, index: true  }, // index is to make searching more optmized...
         email: { type: String, required: true, unique: true, lowercase: true, trim: true },
         fullName: { type: String, required: true, trim: true,index: true },
-        avatar: { type: String, required: true }, // using cloudinary url for avatar
+        avatar: { 
+            url: { type: String, required: true },
+            public_id: { type: String, required: true }
+        }, // using cloudinary url for avatar
         coverImage: { type: String }, // what is cover image for?
         watchHistory: [
             { 

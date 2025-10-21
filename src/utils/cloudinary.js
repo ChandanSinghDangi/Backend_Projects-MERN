@@ -1,5 +1,6 @@
 import { v2 as cloudinary } from "cloudinary";
 import fs from 'fs';
+import { ApiError } from "./ApiError.js";
 
 // import dotenv from "dotenv";
 
@@ -36,7 +37,7 @@ const uploadOnCloudinary = async(localFilePath) => {
         });
 
         console.log('File Upload on Cloudinary was Successfull :: ',response.url); // check the result and see what it gives...
-        console.log('This is a Cloudinary response :: ',response); 
+        console.log('This is a Cloudinary response :: ',response);
 
         if(response) {
             fs.unlinkSync(localFilePath);
@@ -50,4 +51,26 @@ const uploadOnCloudinary = async(localFilePath) => {
     }
 }
 
-export { uploadOnCloudinary }
+
+const deleteCloudinaryFile = async(public_id) => {
+
+    try {
+        const result = await cloudinary.api.delete_resources([public_id], {
+            resource_type: auto
+        });
+    
+        if( result.deleted[public_id] === 'deleted') {
+            return { success: true, message: 'Image deleted successfully from cloudinary'}
+        } else if(result.deleted[public_id] === 'not_found') {
+            return { success: false, message: 'Image not found on cloudinary'}
+        } else {
+            return { success: false, message: 'Image could not be deleted'}
+        }
+    } catch (error) {
+        throw new ApiError(500, 'Cloudinary delete failed')
+    }
+    
+}
+
+
+export { uploadOnCloudinary, deleteCloudinaryFile }
